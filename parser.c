@@ -53,10 +53,14 @@ void parse_manifests(int* size, int* capacity, game_t*** games, char* steam_path
         g->is_wine = is_wine;
 
         // Construct the full path to the file
-        char* full_path = (char*)malloc(strlen(steam_path) + strlen(dir->d_name) + 1);
-        strcpy(full_path, steam_path);
-        strcat(full_path, dir->d_name);
+        char* full_path;
+        asprintf(&full_path, "%s%s", steam_path, dir->d_name);
         f = fopen(full_path, "r");
+        if(f == NULL) {
+          perror("Error opening steam path:");
+          exit(1);
+        }
+
         while(fgets(buf, sizeof(buf), f)) {
           if(strstr(buf, "appid") != NULL) {
             g->appid = get_vals(buf);
