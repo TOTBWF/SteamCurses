@@ -6,10 +6,16 @@
 #include <curses.h>
 #include <menu.h>
 #include <unistd.h>
+#include <string.h>
 #include "parser.h"
 
-int launch_game(char* appid) {
-    char prefix[] = "/usr/bin/steam -applaunch ";
+int launch_game(char* appid, int is_wine) {
+    char* prefix;
+    if(is_wine) {
+      prefix = strdup("wine $WINEPREFIX/drive_c/Program\\ Files/Steam/Steam.exe -applaunch ");
+    } else {
+      prefix = strdup("/usr/bin/steam -applaunch ");
+    }
     char suffix[] = " 1> ~/.steam/nlog 2>&1";
     char* cmd = (char*) malloc(strlen(prefix) + strlen(appid) + strlen(suffix) + 1);
     strcpy(cmd, prefix);
@@ -80,7 +86,7 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
-  password = getpass("Password: ");
+  password = (char*) getpass("Password: ");
  
 
   // Start up steam
@@ -109,16 +115,14 @@ int main(int argc, char* argv[]) {
   else {
     // Parent Process
     // Parse the manifests to get a list of installed games
-    int* size = (int*)malloc(sizeof(int));
-    int* capacity = (int*)malloc(sizeof(int));
-    *size = 0;
-    *capacity = 1;
-    game_t** games = (game_t**) malloc(*capacity * sizeof(game_t*));
-    parse_manifests(size, capacity, &games, steam_path, 0);
+    int size = 0;
+    int capacity = 100;
+    game_t** games = (game_t**) malloc(capacity * sizeof(game_t*));
+    parse_manifests(&size, &capacity, &games, steam_path, 0);
     if(wine_steam_path) {
-      parse_manifests(size, capacity, &games, wine_steam_path, 1);
+      parse_manifests(&size, &capacity, &games, wine_steam_path, 1);
     }
-    sort_games(games, *size);
+    sort_games(games, size);
 
     WINDOW* win;
     ITEM** my_items;
@@ -137,12 +141,16 @@ int main(int argc, char* argv[]) {
     keypad(win, TRUE);
 
     // Populate the array of items
-    my_items = (ITEM**)calloc(*size +1, sizeof(ITEM*));
-    for (int i = 0; i < *size; i++) {
-      my_items[i] = new_item(games[i]->name, NULL);
+    my_items = (ITEM**)calloc(size +1, sizeof(ITEM*));
+    for (int i = 0; i < size; i++) {
+      if(!games[i]->is_wine) {
+        my_items[i] = new_item(games[i]->name, NULL);
+      } else {
+        my_items[i] = new_item(games[i]->name, "(Wine)");
+      }
       my_items[i]->index = i;
     }
-    my_items[*size] = (ITEM*) NULL;
+    my_items[size] = (ITEM*) NULL;
     
     // Set up the menu
     my_menu = new_menu((ITEM**)my_items);
@@ -152,7 +160,7 @@ int main(int argc, char* argv[]) {
     
     // Make things pretty
     mvprintw(LINES - 2, 0, "F1 to exit");
-    print_title(win, "SteamCurses");
+    print_title(win, strdup("SteamCurses"));
     refresh();
 
     // Post the menu
@@ -171,7 +179,7 @@ int main(int argc, char* argv[]) {
           menu_driver(my_menu, REQ_UP_ITEM);
           break;
         case 10:
-          status = launch_game(games[my_menu->curitem->index]->appid);
+          status = launch_game(games[my_menu->curitem->index]->appid, games[my_menu->curitem->index]->is_wine);
           break;
       }
     }
@@ -179,15 +187,13 @@ int main(int argc, char* argv[]) {
     // Perform clean up
     unpost_menu(my_menu);
     free_menu(my_menu);
-    for(int i = 0; i < *size; i++) {
+    for(int i = 0; i < size; i++) {
       free(games[i]->name);
       free(games[i]->appid);
       free(games[i]);
       free_item(my_items[i]);
     }
     fclose(parent_log);
-    free(size);
-    free(capacity);
     free(games);
     free(my_items);
     endwin();
