@@ -18,13 +18,14 @@ int launch_game(char* appid) {
     printf("%s\n",cmd);
     int status = system(cmd);
     free(cmd);
+    return status;
 }
 
 
 int main(int argc, char* argv[]) {
   // Check to see if username + password were provided
 
-  if(argc == 1) {
+  if(argc != 2) {
     printf("Error! Incorrect Usage\n");
     printf("Usage: steamcurses [username]\n");
     exit(1);
@@ -33,11 +34,7 @@ int main(int argc, char* argv[]) {
   char* username = argv[1];
   char* password = getpass("Password: ");
 
-
-
-  // This is a vim styled app, so set up separate windows for each part
-  WINDOW* command_win;
-  WINDOW* ui_win;
+  WINDOW* win;
 
   // NCurses stuff
   initscr();
@@ -46,12 +43,10 @@ int main(int argc, char* argv[]) {
  
   // Get the max size of the window, and init windows
   int parent_x, parent_y;
-  int command_size = 2;
   getmaxyx(stdscr, parent_y, parent_x);
-  command_win = newwin(command_size, parent_x, parent_y - command_size, 0);
-  ui_win = newwin(parent_y - command_size, parent_x, 0, 0);
+  win = newwin(parent_y, parent_x, 0, 0);
   // Give the menu window focus
-  keypad(ui_win, TRUE);
+  keypad(win, TRUE);
   // Set up logger
   FILE* parent_log = fopen("/home/reed/.steam/steamcurses.log", "w");
 
@@ -77,7 +72,7 @@ int main(int argc, char* argv[]) {
     close(commpipe[0]);
     setvbuf(stdout, (char*)NULL, _IONBF, 0);
     // Exec Steam so it can wait for our requests
-    execl("/usr/bin/steam", "-silent", "-login", username, password, NULL);
+    execl("/usr/bin/steam", "/usr/bin/steam", "-silent", "-login", username, password, NULL);
   }
   else {
     // Parent Process
