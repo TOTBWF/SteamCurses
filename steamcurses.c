@@ -5,6 +5,7 @@
 #include <string.h>
 #include <curses.h>
 #include <menu.h>
+#include <unistd.h>
 #include "parser.h"
 
 int launch_game(char* appid) {
@@ -25,12 +26,14 @@ int main(int argc, char* argv[]) {
 
   if(argc == 1) {
     printf("Error! Incorrect Usage\n");
-    printf("Usage: steamcurses [username] [password]\n");
+    printf("Usage: steamcurses [username]\n");
     exit(1);
   }
 
   char* username = argv[1];
-  char* password = argv[2];
+  char* password = getpass("Password: ");
+
+
 
   // This is a vim styled app, so set up separate windows for each part
   WINDOW* command_win;
