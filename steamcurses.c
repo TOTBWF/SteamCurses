@@ -1,8 +1,6 @@
 #include <stdlib.h>
-#include <unistd.h>
 #include <sys/types.h>
 #include <stdio.h>
-#include <string.h>
 #include <curses.h>
 #include <menu.h>
 #include <unistd.h>
@@ -52,14 +50,12 @@ void print_help() {
 int main(int argc, char* argv[]) {
 
   // The current, user, used to guess default locations of stuff
-  char* user = getenv("USER");
+  char* home = getenv("HOME");
 
   // Generate the log path
-  char log_prefix[] = "/home/";
   char log_suffix[] = "/.steam/steamcurses.log";
-  char* log_path = (char*)malloc(strlen(log_prefix) + strlen(log_suffix) + strlen(user) + 1);
-  strcpy(log_path, log_prefix);
-  strcat(log_path, user);
+  char* log_path = (char*)malloc(strlen(log_suffix) + strlen(home) + 1);
+  strcpy(log_path, home);
   strcat(log_path, log_suffix);
 
   FILE* parent_log = fopen(log_path, "w");
@@ -85,18 +81,15 @@ int main(int argc, char* argv[]) {
 
   // If we don't get provided input, make an educated guess or throw errors
   if(steam_path == NULL) {
-    char prefix[] = "/home/";
     char suffix[] = "/.steam/steam/steamapps/";
-    steam_path = (char*) malloc(strlen(prefix) + strlen(suffix) + strlen(user) + 1);
-    strcpy(steam_path, prefix);
-    strcat(steam_path, user);
+    steam_path = (char*) malloc(strlen(suffix) + strlen(home) + 1);
+    strcpy(steam_path, home);
     strcat(steam_path, suffix);
-    printf("Steam Path:%s\n", steam_path);
   }
   if(username == NULL) {
     printf("Error, no username provided!\n");
     print_help();
-    return 1;
+    exit(1);
   }
 
   password = (char*) getpass("Password: ");
@@ -108,6 +101,7 @@ int main(int argc, char* argv[]) {
 
   // Set up the pipe
   if(pipe(commpipe)) {
+    fprintf(parent_log, "Piping Error!\n");
     exit(1);
   }
 
