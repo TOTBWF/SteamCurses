@@ -15,16 +15,23 @@ int launch_game(char* appid) {
     strcpy(cmd, prefix);
     strcat(cmd, appid);
     strcat(cmd, suffix);
-    printf("%s\n",cmd);
+    //printf("%s\n",cmd);
     int status = system(cmd);
     free(cmd);
     return status;
 }
 
+void print_title(WINDOW* win, char* title) {
+  int length = strlen(title);
+  int x, y;
+  getmaxyx(win, y, x);
+  mvwprintw(win, 0, x/2 - length/2, title);
+  refresh();
+}
+
 
 int main(int argc, char* argv[]) {
   // Check to see if username + password were provided
-
   if(argc != 2) {
     printf("Error! Incorrect Usage\n");
     printf("Usage: steamcurses [username]\n");
@@ -33,20 +40,7 @@ int main(int argc, char* argv[]) {
 
   char* username = argv[1];
   char* password = getpass("Password: ");
-
-  WINDOW* win;
-
-  // NCurses stuff
-  initscr();
-  cbreak();
-  noecho();
  
-  // Get the max size of the window, and init windows
-  int parent_x, parent_y;
-  getmaxyx(stdscr, parent_y, parent_x);
-  win = newwin(parent_y, parent_x, 0, 0);
-  // Give the menu window focus
-  keypad(win, TRUE);
   // Set up logger
   FILE* parent_log = fopen("/home/reed/.steam/steamcurses.log", "w");
 
@@ -76,35 +70,53 @@ int main(int argc, char* argv[]) {
   }
   else {
     // Parent Process
+    // Parse the manifests to get a list of installed games
     int* size = (int*) malloc(sizeof(int*));
     game_t** g = parse_manifests(size);
-    // Create the launch string
+
+    WINDOW* win;
+    ITEM** my_items;
+    MENU* my_menu;
+    int c;
+
     // NCurses stuff
     initscr();
     cbreak();
     noecho();
     keypad(stdscr, TRUE);
-    // Create array of strings to pass to the ncurses menu
-    ITEM** my_items;
-    int c;
-    MENU* my_menu;
 
+    // Get the max size of the window, and init windows
+    win = newwin(LINES - 3, COLS - 1, 0, 0);
+    // Give the menu window focus
+    keypad(win, TRUE);
+
+    // Populate the array of items
     my_items = (ITEM**)calloc(*size +1, sizeof(ITEM*));
-
     for (int i = 0; i < *size; i++) {
-      my_items[i] = new_item(g[i]->name, g[i]->appid);
+      my_items[i] = new_item(g[i]->name, NULL);
       my_items[i]->index = i;
     }
     my_items[*size] = (ITEM*) NULL;
+    
+    // Set up the menu
     my_menu = new_menu((ITEM**)my_items);
+    set_menu_format(my_menu, LINES - 4, 0);
+    set_menu_win(my_menu, win);
+    set_menu_sub(my_menu, derwin(win, LINES - 4, COLS - 2, 1, 0));
+    
+    // Make things pretty
     mvprintw(LINES - 2, 0, "F1 to exit");
-    post_menu(my_menu);
+    print_title(win, "SteamCurses");
     refresh();
+
+    // Post the menu
+    post_menu(my_menu);
+    wrefresh(win);
     
     // Game Launch Status
     int status = 0;
     // Only call getch once
-    while((c = getch()) != KEY_F(1)) {
+    while((c = wgetch(win)) != KEY_F(1)) {
       switch(c) {
         case KEY_DOWN:
           menu_driver(my_menu, REQ_DOWN_ITEM);
@@ -117,6 +129,10 @@ int main(int argc, char* argv[]) {
           break;
       }
     }
+
+    // Perform clean up
+    unpost_menu(my_menu);
+    free_menu(my_menu);
     for(int i = 0; i < *size; i++) {
       free(g[i]->name);
       free(g[i]->appid);
