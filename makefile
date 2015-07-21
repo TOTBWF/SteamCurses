@@ -1,2 +1,2 @@
 all:
-	gcc -std=c99 -lncurses -lmenu -o steamcurses steamcurses.c parser.c 
+	gcc -std=c99 -lncurses -lmenu -g -o steamcurses steamcurses.c parser.c 
