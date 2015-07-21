@@ -16,7 +16,7 @@ int launch_game(char* appid, int is_wine) {
     } else {
       prefix = strdup("/usr/bin/steam -applaunch ");
     }
-    char suffix[] = " 1> ~/.steam/nlog 2>&1";
+    char suffix[] = " 1>> ~/.steam/steamcurses.log 2>>&1";
     char* cmd = (char*) malloc(strlen(prefix) + strlen(appid) + strlen(suffix) + 1);
     strcpy(cmd, prefix);
     strcat(cmd, appid);
@@ -43,18 +43,26 @@ void print_help() {
 }
 
 
+
 int main(int argc, char* argv[]) {
 
-  // Set up logger
-  FILE* parent_log = fopen("/home/reed/.steam/steamcurses.log", "w");
+  // The current, user, used to guess default locations of stuff
+  char* user = getenv("USER");
+
+  // Generate the log path
+  char* log_prefix = strdup("/home/");
+  char* log_suffix = strdup("/.steam/steamcurses.log");
+  char* log_path = malloc(strlen(log_prefix) + strlen(log_suffix) + strlen(user) + 1);
+  strcpy(log_path, log_prefix);
+  strcat(log_path, user);
+  strcat(log_path, log_suffix);
+
+  FILE* parent_log = fopen(log_path, "w");
 
   char* steam_path = NULL;
   char* wine_steam_path = NULL;
   char* username = NULL;
   char* password = NULL;
-
-  // The current, user, used to guess default locations of stuff
-  char* user = getenv("USER");
   
   // Deal with user input
   for(int i = 1; i < argc; i++) {
@@ -100,7 +108,7 @@ int main(int argc, char* argv[]) {
 
   // Fork off the steam process
   if((child_pid=fork()) < 0) {
-    // fprintf(parent_log, "Forking Error!\n");
+    fprintf(parent_log, "Forking Error!\n");
     exit(1);
   }
 
