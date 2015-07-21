@@ -187,7 +187,7 @@ int main(int argc, char* argv[]) {
     if(wine_steam_path) {
       parse_manifests(&size, &capacity, &games, wine_steam_path, 1);
     }
-    //sort_games(games, size);
+    sort_games(games, size);
 
     WINDOW* win;
     ITEM** my_items;
@@ -218,7 +218,6 @@ int main(int argc, char* argv[]) {
     free(games);
     free(my_items);
     free(log_path);
-    free(steam_path);
     games = NULL;
     my_items = NULL;
     log_path = NULL;
