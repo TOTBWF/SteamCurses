@@ -16,7 +16,7 @@ int launch_game(char* appid, int is_wine) {
     } else {
       prefix = strdup("/usr/bin/steam -applaunch ");
     }
-    char suffix[] = " 1>> ~/.steam/steamcurses.log 2>>&1";
+    char suffix[] = " 1>> ~/.steam/steamcurses.log 2>> ~/.steam/steamcurses.log";
     char* cmd = (char*) malloc(strlen(prefix) + strlen(appid) + strlen(suffix) + 1);
     strcpy(cmd, prefix);
     strcat(cmd, appid);
