@@ -51,11 +51,11 @@ void parse_manifests(int* size, int* capacity, game_t*** games, char* steam_path
         // Create and fill out game struct
         game_t* g = (game_t*) malloc(sizeof(game_t));
         g->is_wine = is_wine;
-        char* path = strdup(steam_path);
-        char* fname = strdup(dir->d_name);
-        char* full_path = (char*)malloc(strlen(path) + strlen(fname) + 1);
-        strcpy(full_path, path);
-        strcat(full_path, fname);
+
+        // Construct the full path to the file
+        char* full_path = (char*)malloc(strlen(steam_path) + strlen(dir->d_name) + 1);
+        strcpy(full_path, steam_path);
+        strcat(full_path, dir->d_name);
         f = fopen(full_path, "r");
         while(fgets(buf, sizeof(buf), f)) {
           if(strstr(buf, "appid") != NULL) {
@@ -67,8 +67,10 @@ void parse_manifests(int* size, int* capacity, game_t*** games, char* steam_path
         fclose(f);
         (*games)[*size] = g;
         *size += 1;
-        free(path);
-        free(fname);
+
+        // Free the memory used by the string
+        free(full_path);
+        full_path = NULL;
 
         //Resize array as needed
         if(*size >= *capacity) {

@@ -22,7 +22,12 @@ int launch_game(char* appid, int is_wine) {
     strcat(cmd, appid);
     strcat(cmd, suffix);
     int status = system(cmd);
+
+    free(prefix);
     free(cmd);
+    prefix = NULL;
+    cmd = NULL;
+
     return status;
 }
 
@@ -50,9 +55,9 @@ int main(int argc, char* argv[]) {
   char* user = getenv("USER");
 
   // Generate the log path
-  char* log_prefix = strdup("/home/");
-  char* log_suffix = strdup("/.steam/steamcurses.log");
-  char* log_path = malloc(strlen(log_prefix) + strlen(log_suffix) + strlen(user) + 1);
+  char log_prefix[] = "/home/";
+  char log_suffix[] = "/.steam/steamcurses.log";
+  char* log_path = (char*)malloc(strlen(log_prefix) + strlen(log_suffix) + strlen(user) + 1);
   strcpy(log_path, log_prefix);
   strcat(log_path, user);
   strcat(log_path, log_suffix);
@@ -168,7 +173,8 @@ int main(int argc, char* argv[]) {
     
     // Make things pretty
     mvprintw(LINES - 2, 0, "F1 to exit");
-    print_title(win, strdup("SteamCurses"));
+    char title[] = "SteamCurses";
+    print_title(win, title);
     refresh();
 
     // Post the menu
@@ -204,6 +210,12 @@ int main(int argc, char* argv[]) {
     fclose(parent_log);
     free(games);
     free(my_items);
+    free(log_path);
+    free(steam_path);
+    games = NULL;
+    my_items = NULL;
+    log_path = NULL;
+    steam_path = NULL;
     endwin();
     system("steam -shutdown");
     return 0;
