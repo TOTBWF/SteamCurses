@@ -68,6 +68,16 @@ game_t** parse_manifests(int* size) {
   } else {
     printf("Could not open steam directory %s\n", steam_path);
   }
+  // Sort the games based off of their names
+  for(int i = 1; i < games_size; i++) {
+    for(int j = 1; j < games_size; j++) {
+      if(strcmp(games[j - 1]->name, games[j]->name) > 0) {
+        game_t* tmp = games[j];
+        games[j] = games[j - 1];
+        games[j - 1] = tmp;
+      }
+    }
+  }
   *size = games_size;
   return games;
 }
