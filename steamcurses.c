@@ -12,7 +12,7 @@ int launch_game(char* appid, int is_wine) {
     if(is_wine) {
       asprintf(&cmd, "wine $WINEPREFIX/drive_c/Program\\ Files/Steam/Steam.exe -applaunch -silent %s 1>> ~/.steam/steamcurses.log 2>> ~/.steam/steamcurses.log", appid);
     } else {
-      asprintf(&cmd, "/usr/bin/steam -applaunch -silent %s 1>> ~/.steam/steamcurses.log 2>> ~/.steam/steamcurses.log", appid);
+      asprintf(&cmd, "/usr/bin/steam -silent -applaunch %s 1>> ~/.steam/steamcurses.log 2>> ~/.steam/steamcurses.log", appid);
     }
     int status = system(cmd);
     free(cmd);
