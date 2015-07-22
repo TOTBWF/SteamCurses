@@ -12,7 +12,7 @@ int launch_game(char* appid, int is_wine) {
     if(is_wine) {
       asprintf(&cmd, "wine $WINEPREFIX/drive_c/Program\\ Files/Steam/Steam.exe -applaunch -silent %s 1>> ~/.steam/steamcurses.log 2>> ~/.steam/steamcurses.log", appid);
     } else {
-      asprintf(&cmd, "/usr/bin/steam -applaunch -silent %s 1>> ~/.steam/steamcurses.log 2>> ~/.steam/steamcurses.log", appid);
+      asprintf(&cmd, " 1>> ~/.steam/steamcurses.log 2>> ~/.steam/steamcurses.log", appid);
     }
     int status = system(cmd);
     free(cmd);
@@ -153,78 +153,50 @@ int main(int argc, char* argv[]) {
   password = (char*) getpass("Password: ");
  
 
-  // Start up steam
-  pid_t child_pid;
-  int commpipe[2];
-
-  // Set up the pipe
-  if(pipe(commpipe)) {
-    fprintf(parent_log, "Piping Error!\n");
-    exit(1);
+  // Parse the manifests to get a list of installed games
+  int size = 0;
+  int capacity = 100;
+  game_t** games = (game_t**) malloc(capacity * sizeof(game_t*));
+  parse_manifests(&size, &capacity, &games, steam_path, 0);
+  if(wine_steam_path) {
+    parse_manifests(&size, &capacity, &games, wine_steam_path, 1);
   }
+  sort_games(games, size);
 
-  // Fork off the steam process
-  if((child_pid=fork()) < 0) {
-    fprintf(parent_log, "Forking Error!\n");
-    exit(1);
+  WINDOW* win;
+  ITEM** my_items;
+  MENU* my_menu;
+
+  // Set up ncurses
+  win = init_ncurses();
+
+  // Populate the array of items
+  my_items = init_items(games, size);
+  
+  // Set up the menu
+  my_menu = init_menu(my_items, win); 
+  
+  // Display the menu
+  print_menu(win, my_menu, games);
+
+  // Perform clean up
+  unpost_menu(my_menu);
+  free_menu(my_menu);
+  for(int i = 0; i < size; i++) {
+    free(games[i]->name);
+    free(games[i]->appid);
+    free(games[i]);
+    free_item(my_items[i]);
   }
-
-  if(child_pid == 0) {
-    // Set STDOUT to be piped to the parent
-    dup2(commpipe[1], STDOUT_FILENO);
-    close(commpipe[0]);
-    setvbuf(stdout, (char*)NULL, _IONBF, 0);
-    // Exec Steam so it can wait for our requests
-    execl("/usr/bin/steam", "/usr/bin/steam", "-silent", "-login", username, password, NULL);
-  }
-  else {
-    // Parent Process
-    // Parse the manifests to get a list of installed games
-    int size = 0;
-    int capacity = 100;
-    game_t** games = (game_t**) malloc(capacity * sizeof(game_t*));
-    parse_manifests(&size, &capacity, &games, steam_path, 0);
-    if(wine_steam_path) {
-      parse_manifests(&size, &capacity, &games, wine_steam_path, 1);
-    }
-    sort_games(games, size);
-
-    WINDOW* win;
-    ITEM** my_items;
-    MENU* my_menu;
-
-    // Set up ncurses
-    win = init_ncurses();
-
-    // Populate the array of items
-    my_items = init_items(games, size);
-    
-    // Set up the menu
-    my_menu = init_menu(my_items, win); 
-    
-    // Display the menu
-    print_menu(win, my_menu, games);
-
-    // Perform clean up
-    unpost_menu(my_menu);
-    free_menu(my_menu);
-    for(int i = 0; i < size; i++) {
-      free(games[i]->name);
-      free(games[i]->appid);
-      free(games[i]);
-      free_item(my_items[i]);
-    }
-    fclose(parent_log);
-    free(games);
-    free(my_items);
-    free(log_path);
-    games = NULL;
-    my_items = NULL;
-    log_path = NULL;
-    steam_path = NULL;
-    endwin();
-    system("steam -shutdown");
-    return 0;
-  }
+  fclose(parent_log);
+  free(games);
+  free(my_items);
+  free(log_path);
+  games = NULL;
+  my_items = NULL;
+  log_path = NULL;
+  steam_path = NULL;
+  endwin();
+  system("steam -shutdown");
 }
 
