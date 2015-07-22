@@ -1,0 +1,1 @@
+FILE* g_logfile;
