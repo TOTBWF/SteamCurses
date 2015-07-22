@@ -1,9 +1,10 @@
+#define _GNU_SOURCE
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <dirent.h>
 #include "parser.h"
-
 
 char* get_vals(char* str) {
   int start = 0;
