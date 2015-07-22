@@ -1,5 +1,16 @@
 # SteamCurses
-A Basic NCurses Client for Steam
-Supports both native Steam as well as Steam installed via Wine
+A Basic NCurses Client for Linux Steam
 
-Dependencies: Steam, Ncurses
+**Features:**
+- Supports both wine and native games at the same time
+
+**Building**
+Dependencies: Steam, ncurses-dev packages
+Ubuntu users may have to use the libncurses5-dev package
+simply run make to build
+
+**Usage**
+-u --username: Your Steam username
+-p --steam_path: The path tho your steamapps directory
+-w --wine_steam_path: The path to your wine steamapps directory
+-h --help: Print help message
