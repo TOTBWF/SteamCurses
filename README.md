@@ -9,7 +9,7 @@ A Basic NCurses Client for Linux Steam
 
 Ubuntu users may have to use the libncurses5-dev package.
 
-Simply run make to build.
+Simply run ```make``` to build.
 
 ###Usage:
 ```
