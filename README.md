@@ -1,5 +1,5 @@
 # SteamCurses
-A Basic NCurses Client for Linux Steam
+A basic NCurses client for Steam on Linux
 
 ### Features:
 - Supports both wine and native games at the same time
@@ -26,8 +26,9 @@ Simply run ```make``` to build.
 
 ### Usage:
 ```
- -u --username: Your Steam username
- -p --steam_path: The path to your steamapps directory
- -w --wine_steam_path: The path to your wine steamapps directory
- -h --help: Print help message
+ ./steamcurses -u <username> [options]
+   -u --username:         your Steam username
+   -p --steam_path:       the path to your steamapps directory
+   -w --wine_steam_path:  the path to your wine steamapps directory
+   -h --help:             print help message
 ```
