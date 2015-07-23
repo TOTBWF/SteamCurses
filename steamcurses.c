@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include <stdlib.h>
 #include <sys/types.h>
 #include <stdio.h>
@@ -29,11 +30,11 @@ void print_title(WINDOW* win, char* title) {
 }
 
 void print_help() {
-  printf("Usage:\n");
-  printf("-u --username: Your Steam username\n");
-  printf("-p --steam_path: The path tho your steamapps directory\n");
-  printf("-w --wine_steam_path: The path to your wine steamapps directory\n");
-  printf("-h --help: Print this help page\n");
+  printf("Usage: ./steamcurses -u <username> [options]\n");
+  printf("	-u --username:		your Steam username\n");
+  printf("	-p --steam_path:	the path to your steamapps directory\n");
+  printf("	-w --wine_steam_path:	the path to your wine steamapps directory\n");
+  printf("	-h --help:		print this help message and exit\n");
 }
 
 int print_menu(WINDOW* win, MENU* menu, game_t** games) {
