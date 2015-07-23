@@ -6,10 +6,12 @@ A Basic NCurses Client for Linux Steam
 
 ### Building:
 **Dependencies:**
-
 * Steam
-  * ```sudo apt-get install steam```
 * ncurses-dev package
+
+For Ubunutu flavors:
+  * ```sudo apt-get install steam```
+
   * ```sudo apt-get install libncurses5-dev```
 
 Ubuntu users may have to use the libncurses5-dev package.
