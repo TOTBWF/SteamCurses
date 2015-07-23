@@ -7,6 +7,7 @@
 #include <string.h>
 #include "parser.h"
 #include "steamcurses.h"
+#include "manifest_generator.h"
 
 int launch_game(char* appid, int is_wine) {
     char* cmd = NULL;
@@ -32,6 +33,7 @@ void print_title(WINDOW* win, char* title) {
 void print_help() {
   printf("Usage:\n");
   printf("-u --username: Your Steam username\n");
+  printf("-d --directory: Directory used for steamcurses files\n");
   printf("-p --steam_path: The path tho your steamapps directory\n");
   printf("-w --wine_steam_path: The path to your wine steamapps directory\n");
   printf("-h --help: Print this help page\n");
@@ -52,8 +54,9 @@ int print_menu(WINDOW* win, MENU* menu, game_t** games) {
           break;
         }
         case 10: {
-          char* appid = fetch_value(games[menu->curitem->index]->key_value_pairs, "appid", games[menu->curitem->index]->size); 
-          status = launch_game(appid, games[menu->curitem->index]->is_wine);
+          game_t* curr_game = games[menu->curitem->index];
+          char* appid = fetch_value(curr_game->key_value_pairs, "appid", curr_game->size); 
+          status = launch_game(appid, curr_game->is_wine);
           break;
         }
       }
@@ -129,6 +132,7 @@ int main(int argc, char* argv[]) {
 
   char* steam_path = NULL;
   char* wine_steam_path = NULL;
+  char* steamcurses_dir;
   char* username = NULL;
   char* password = NULL;
   
@@ -140,6 +144,8 @@ int main(int argc, char* argv[]) {
       steam_path = argv[++i];
     } else if(strcmp(argv[i], "-w") == 0 || strcmp(argv[i], "--wine_steam_path") == 0) {
       wine_steam_path = argv[++i];
+    } else if(strcmp(argv[i], "-d") == 0 || strcmp(argv[i], "--directory") == 0) {
+      steamcurses_dir = argv[++i];
     } else {
       print_help();
       exit(0);
@@ -169,6 +175,8 @@ int main(int argc, char* argv[]) {
   }
   fprintf(g_logfile, "Starting Sort!\n");
   sort_games(games, size);
+  // Generate Manifests, and set game executable paths
+  generate_manifests(steamcurses_dir, games, size); 
 
   WINDOW* win;
   ITEM** my_items;
