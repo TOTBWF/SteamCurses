@@ -5,9 +5,22 @@ A basic NCurses client for Steam on Linux
 - Supports both wine and native games at the same time
 
 ### Building:
-**Dependencies:** Steam, ncurses-dev packages.
+**Dependencies:**
+* Steam
+* ncurses-dev package
 
-Ubuntu users may have to use the libncurses5-dev package.
+
+For Ubuntu flavors:
+  * ```sudo apt-get install steam```
+
+  * ```sudo apt-get install libncurses5-dev```
+
+Arch:
+  * ```sudo pacman -S ncurses```
+
+  * ```sudo pacman -S steam```
+
+  * It can also be found under the AUR as steamcurses-git
 
 Simply run ```make``` to build.
 
