@@ -9,6 +9,7 @@ A Basic NCurses Client for Linux Steam
 * Steam
 * ncurses-dev package
 
+
 For Ubuntu flavors:
   * ```sudo apt-get install steam```
 
