@@ -15,6 +15,11 @@ For Ubuntu flavors:
 
   * ```sudo apt-get install libncurses5-dev```
 
+Arch:
+  * ```sudo pacman -S ncurses```
+
+  * ```sudo pacman -S steam```
+
 Ubuntu users may have to use the libncurses5-dev package.
 
 Simply run ```make``` to build.
