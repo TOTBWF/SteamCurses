@@ -20,7 +20,7 @@ Arch:
 
   * ```sudo pacman -S steam```
 
-Ubuntu users may have to use the libncurses5-dev package.
+  * It can also be found under the AUR as steamcurses-git
 
 Simply run ```make``` to build.
 
