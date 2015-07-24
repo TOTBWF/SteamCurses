@@ -1,3 +1,5 @@
+all: injector final
+
 injector: steam_injector.c
 	gcc -m32 -shared -fPIC  steam_injector.c -o steam_injector.so -ldl -lX11
 
