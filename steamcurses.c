@@ -6,19 +6,35 @@
 #include <menu.h>
 #include <unistd.h>
 #include <string.h>
+#include <signal.h>
+#include <fcntl.h>
 #include "parser.h"
+#include "steamcurses.h"
 
-int launch_game(char* appid, int is_wine) {
-    char* cmd = NULL;
+
+// Fork of the game in a new process
+void launch_game(char* appid, int is_wine) {
+  // Fork off the game on a new thread
+  pid_t pid;
+  if((pid = fork()) < 0) {
+    perror("Forking Error!");
+    exit(1);
+  }
+  if(pid == 0) {
+    // Pipe stderr -> stdout -> logfile
+    dup2(fileno(g_logfile), fileno(stdout));
+    dup2(fileno(stdout), fileno(stderr));
+
+    char* cmd;
     if(is_wine) {
-      asprintf(&cmd, "wine $WINEPREFIX/drive_c/Program\\ Files/Steam/Steam.exe -applaunch -silent %s 1>> ~/.steam/steamcurses.log 2>> ~/.steam/steamcurses.log", appid);
+      // Wine Steam will prompt for password
+      asprintf(&cmd, "wine $WINEPREFIX/drive_c/Program\\ Files/Steam/Steam.exe -silent -login %s %s -applaunch %s", g_username, g_password, appid);
     } else {
-      asprintf(&cmd, "/usr/bin/steam -silent -applaunch %s 1>> ~/.steam/steamcurses.log 2>> ~/.steam/steamcurses.log", appid);
+      asprintf(&cmd, "steam -applaunch %s", appid);
     }
-    int status = system(cmd);
-    free(cmd);
-    cmd = NULL;
-    return status;
+    system(cmd);
+    exit(0);
+  }
 }
 
 void print_title(WINDOW* win, char* title) {
@@ -37,9 +53,8 @@ void print_help() {
   printf("	-h --help:		print this help message and exit\n");
 }
 
-int print_menu(WINDOW* win, MENU* menu, game_t** games) {
+void print_menu(WINDOW* win, MENU* menu, game_t** games) {
     int c;
-    int status = 0;
     // Only call getch once
     while((c = wgetch(win)) != 'q') {
       switch(c) {
@@ -50,11 +65,10 @@ int print_menu(WINDOW* win, MENU* menu, game_t** games) {
           menu_driver(menu, REQ_UP_ITEM);
           break;
         case 10:
-          status = launch_game(games[menu->curitem->index]->appid, games[menu->curitem->index]->is_wine);
+          launch_game(games[menu->curitem->index]->appid, games[menu->curitem->index]->is_wine);
           break;
       }
     }
-    return status;
 }
 
 WINDOW* init_ncurses() {
@@ -66,6 +80,7 @@ WINDOW* init_ncurses() {
 
     // Get the max size of the window, and init windows
     WINDOW* win = newwin(LINES - 3, COLS - 1, 0, 0);
+    // q
     // Give the menu window focus
     keypad(win, TRUE);
     return win;
@@ -109,7 +124,6 @@ MENU* init_menu(ITEM** items, WINDOW* win) {
 
 
 int main(int argc, char* argv[]) {
-
   // The current home dir, used to generate default locations 
   char* home = getenv("HOME");
   if(home == NULL) {
@@ -117,20 +131,20 @@ int main(int argc, char* argv[]) {
     exit(1);
   }
 
-  // Generate the log path
   char* log_path;
   asprintf(&log_path, "%s/.steam/steamcurses.log", home);
-  FILE* parent_log = fopen(log_path, "w");
+  g_logfile = fopen(log_path, "a");
+
 
   char* steam_path = NULL;
   char* wine_steam_path = NULL;
-  char* username = NULL;
-  char* password = NULL;
+  g_username = NULL;
+  g_password = NULL;
   
   // Deal with user input
   for(int i = 1; i < argc; i++) {
     if(strcmp(argv[i], "-u") == 0 || strcmp(argv[i], "--username") == 0) {
-        username = argv[++i];
+        g_username = argv[++i];
     } else if(strcmp(argv[i], "-p") == 0 || strcmp(argv[i], "--steam_path") == 0) {
       steam_path = argv[++i];
     } else if(strcmp(argv[i], "-w") == 0 || strcmp(argv[i], "--wine_steam_path") == 0) {
@@ -145,40 +159,33 @@ int main(int argc, char* argv[]) {
   if(steam_path == NULL) {
     asprintf(&steam_path, "%s/.steam/steam/steamapps/", home);
   }
-  if(username == NULL) {
+  if(g_username == NULL) {
     printf("Error, no username provided!\n");
     print_help();
     exit(1);
   }
 
-  password = (char*) getpass("Password: ");
+  g_password = (char*) getpass("Password: ");
  
+  pid_t pid;
 
-  // Start up steam
-  pid_t child_pid;
-  int commpipe[2];
-
-  // Set up the pipe
-  if(pipe(commpipe)) {
-    fprintf(parent_log, "Piping Error!\n");
-    exit(1);
-  }
 
   // Fork off the steam process
-  if((child_pid=fork()) < 0) {
-    fprintf(parent_log, "Forking Error!\n");
+  if((pid=fork()) < 0) {
+    perror("Forking Error!");
     exit(1);
   }
 
-  if(child_pid == 0) {
-    // Set STDOUT to be piped to the parent
-    dup2(commpipe[1], STDOUT_FILENO);
-    close(commpipe[0]);
-    setvbuf(stdout, (char*)NULL, _IONBF, 0);
-    // Exec Steam so it can wait for our requests
-    execl("/usr/bin/steam", "/usr/bin/steam", "-silent", "-login", username, password, NULL);
-  }
-  else {
+  if(pid == 0) {
+    // Pipe stderr -> stdout -> logfile
+    dup2(fileno(g_logfile), fileno(stdout));
+    dup2(fileno(stdout), fileno(stderr));
+    // Set up launch command
+    char* cmd;
+    asprintf(&cmd, "LD_PRELOAD=/home/reed/projects/steamcurses/steam_injector.so LD_LIBRARY_PATH=/home/reed/.steam/bin/ /home/reed/.steam/bin/steam -login %s %s", g_username, g_password);
+    system(cmd);
+    exit(0);
+  } else {
     // Parent Process
     // Parse the manifests to get a list of installed games
     int size = 0;
@@ -215,10 +222,9 @@ int main(int argc, char* argv[]) {
       free(games[i]);
       free_item(my_items[i]);
     }
-    fclose(parent_log);
+    fclose(g_logfile);
     free(games);
     free(my_items);
-    free(log_path);
     games = NULL;
     my_items = NULL;
     log_path = NULL;
