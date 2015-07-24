@@ -1,14 +1,11 @@
 #define _GNU_SOURCE
 #include <dlfcn.h>
 #include <stdio.h>
+#include <X11/Xlib.h>
+#include <X11/Xutil.h>
+#include <X11/Xos.h>
 
-typedef int (*orig_open_f_type)(const char *pathname, int flags);
-
-int open(const char* pathname, int flags, ...) {
-  printf("Open was used to access %s\n", pathname);
-  orig_open_f_type orig_open;
-  orig_open = (orig_open_f_type)dlsym(RTLD_NEXT, "open");
-  return orig_open(pathname, flags);
+int XMapWindow(Display* display, Window w) {
+  printf("Window Mapping Blocked\n");
+  return 0;
 }
-
-
