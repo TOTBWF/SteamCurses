@@ -22,7 +22,7 @@ Arch:
 
   * It can also be found under the AUR as steamcurses-git
 
-Simply run ```make``` to build.
+Simply run ```make install``` to build and install.
 
 ### Usage:
 ```

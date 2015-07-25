@@ -124,6 +124,7 @@ MENU* init_menu(ITEM** items, WINDOW* win) {
 
 
 int main(int argc, char* argv[]) {
+
   // The current home dir, used to generate default locations 
   char* home = getenv("HOME");
   if(home == NULL) {
@@ -177,12 +178,20 @@ int main(int argc, char* argv[]) {
   }
 
   if(pid == 0) {
+    // Figure out path to the executable, used for loading the injector
+
+    char* bin_path;
+    asprintf(&bin_path, "%s/.steam/bin", home);
+    fprintf(g_logfile, "%s\n", bin_path);
+
+
+  
     // Pipe stderr -> stdout -> logfile
     dup2(fileno(g_logfile), fileno(stdout));
     dup2(fileno(stdout), fileno(stderr));
     // Set up launch command
     char* cmd;
-    asprintf(&cmd, "LD_PRELOAD=/home/reed/projects/steamcurses/steam_injector.so LD_LIBRARY_PATH=/home/reed/.steam/bin/ /home/reed/.steam/bin/steam -login %s %s", g_username, g_password);
+    asprintf(&cmd, "LD_PRELOAD=/usr/lib32/steam_injector.so LD_LIBRARY_PATH=%s %s/steam -login %s %s", bin_path, bin_path, g_username, g_password);
     system(cmd);
     exit(0);
   } else {
@@ -230,7 +239,7 @@ int main(int argc, char* argv[]) {
     log_path = NULL;
     steam_path = NULL;
     endwin();
-    system("steam -shutdown");
+    system("steam -shutdown 1>/dev/null 2>/dev/null");
     return 0;
   }
 }
