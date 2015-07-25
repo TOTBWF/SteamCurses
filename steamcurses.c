@@ -10,6 +10,7 @@
 #include <fcntl.h>
 #include "parser.h"
 #include "steamcurses.h"
+#include "manifest_generator.h"
 
 
 // Fork of the game in a new process
@@ -58,15 +59,20 @@ void print_menu(WINDOW* win, MENU* menu, game_t** games) {
     // Only call getch once
     while((c = wgetch(win)) != 'q') {
       switch(c) {
-        case KEY_DOWN:
+        case KEY_DOWN: {
           menu_driver(menu, REQ_DOWN_ITEM);
           break;
-        case KEY_UP:
+        }
+        case KEY_UP: {
           menu_driver(menu, REQ_UP_ITEM);
           break;
-        case 10:
-          launch_game(games[menu->curitem->index]->appid, games[menu->curitem->index]->is_wine);
+        }
+        case 10: {
+          game_t* curr_game = games[menu->curitem->index];
+          char* appid = fetch_value(curr_game->key_value_pairs, "appid", curr_game->size); 
+          launch_game(appid, curr_game->is_wine);
           break;
+        }
       }
     }
 }
@@ -91,10 +97,11 @@ ITEM** init_items(game_t** games, int size) {
     // Populate the array of items
     ITEM **items = (ITEM**)calloc(size + 1, sizeof(ITEM*));
     for (int i = 0; i < size; i++) {
+      char* name = fetch_value(games[i]->key_value_pairs, "name", games[i]->size);
       if(!games[i]->is_wine) {
-        items[i] = new_item(games[i]->name, NULL);
+        items[i] = new_item(name, NULL);
       } else {
-        items[i] = new_item(games[i]->name, "(Wine)");
+        items[i] = new_item(name, "(Wine)");
       }
       items[i]->index = i;
     }
@@ -139,6 +146,7 @@ int main(int argc, char* argv[]) {
 
   char* steam_path = NULL;
   char* wine_steam_path = NULL;
+  char* steamcurses_dir = NULL;
   g_username = NULL;
   g_password = NULL;
   
@@ -150,6 +158,8 @@ int main(int argc, char* argv[]) {
       steam_path = argv[++i];
     } else if(strcmp(argv[i], "-w") == 0 || strcmp(argv[i], "--wine_steam_path") == 0) {
       wine_steam_path = argv[++i];
+    } else if(strcmp(argv[i], "-d") == 0 || strcmp(argv[i], "--directory") == 0) {
+      steamcurses_dir = argv[++i];
     } else {
       print_help();
       exit(0);
@@ -205,20 +215,22 @@ int main(int argc, char* argv[]) {
       parse_manifests(&size, &capacity, &games, wine_steam_path, 1);
     }
     sort_games(games, size);
+    generate_manifests(steamcurses_dir, games, size); 
 
     WINDOW* win;
     ITEM** my_items;
     MENU* my_menu;
+
 
     // Set up ncurses
     win = init_ncurses();
 
     // Populate the array of items
     my_items = init_items(games, size);
-    
+  
     // Set up the menu
     my_menu = init_menu(my_items, win); 
-    
+  
     // Display the menu
     print_menu(win, my_menu, games);
 
@@ -226,8 +238,12 @@ int main(int argc, char* argv[]) {
     unpost_menu(my_menu);
     free_menu(my_menu);
     for(int i = 0; i < size; i++) {
-      free(games[i]->name);
-      free(games[i]->appid);
+      for(int j = 0; j < games[i]->size; j++) {
+        free(games[i]->key_value_pairs[j]->key);
+        free(games[i]->key_value_pairs[j]->value);
+        free(games[i]->key_value_pairs[j]);
+      }
+      free(games[i]->key_value_pairs);
       free(games[i]);
       free_item(my_items[i]);
     }
