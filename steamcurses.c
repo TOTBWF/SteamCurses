@@ -51,6 +51,7 @@ void print_help() {
   printf("	-u --username:		your Steam username\n");
   printf("	-p --steam_path:	the path to your steamapps directory\n");
   printf("	-w --wine_steam_path:	the path to your wine steamapps directory\n");
+  printf("  -m --update_manifests:  update the generated manifests used to get optional game data\n");
   printf("	-h --help:		print this help message and exit\n");
 }
 
@@ -146,9 +147,9 @@ int main(int argc, char* argv[]) {
 
   char* steam_path = NULL;
   char* wine_steam_path = NULL;
-  char* steamcurses_dir = NULL;
   g_username = NULL;
   g_password = NULL;
+  int update_manifests = 0;
   
   // Deal with user input
   for(int i = 1; i < argc; i++) {
@@ -158,8 +159,8 @@ int main(int argc, char* argv[]) {
       steam_path = argv[++i];
     } else if(strcmp(argv[i], "-w") == 0 || strcmp(argv[i], "--wine_steam_path") == 0) {
       wine_steam_path = argv[++i];
-    } else if(strcmp(argv[i], "-d") == 0 || strcmp(argv[i], "--directory") == 0) {
-      steamcurses_dir = argv[++i];
+    } else if(strcmp(argv[i], "-m") == 0 || strcmp(argv[i], "--update_manifests") == 0) {
+      update_manifests = 1;
     } else {
       print_help();
       exit(0);
@@ -215,7 +216,12 @@ int main(int argc, char* argv[]) {
       parse_manifests(&size, &capacity, &games, wine_steam_path, 1);
     }
     sort_games(games, size);
-    generate_manifests(steamcurses_dir, games, size); 
+    // We use these generated manifests to view interesting info about the games
+    if(update_manifests) {
+      char* steamcurses_dir;
+      asprintf(&steamcurses_dir, "%s/.steamcurses/", home);
+      generate_manifests(steamcurses_dir, games, size); 
+    }
 
     WINDOW* win;
     ITEM** my_items;
