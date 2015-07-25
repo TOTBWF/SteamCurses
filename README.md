@@ -30,5 +30,6 @@ Simply run ```make install``` to build and install.
    -u --username:         your Steam username
    -p --steam_path:       the path to your steamapps directory
    -w --wine_steam_path:  the path to your wine steamapps directory
+   -m --update_manifests: update the generated manifests
    -h --help:             print help message
 ```
