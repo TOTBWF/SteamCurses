@@ -130,7 +130,6 @@ MENU* init_menu(ITEM** items, WINDOW* win) {
 
 
 
-
 int main(int argc, char* argv[]) {
 
   // The current home dir, used to generate default locations 
@@ -143,6 +142,7 @@ int main(int argc, char* argv[]) {
   char* log_path;
   asprintf(&log_path, "%s/.steam/steamcurses.log", home);
   g_logfile = fopen(log_path, "a");
+  free(log_path);
 
 
   char* steam_path = NULL;
@@ -221,6 +221,7 @@ int main(int argc, char* argv[]) {
       char* steamcurses_dir;
       asprintf(&steamcurses_dir, "%s/.steamcurses/", home);
       generate_manifests(steamcurses_dir, games, size); 
+      free(steamcurses_dir);
     }
 
     WINDOW* win;
@@ -245,15 +246,20 @@ int main(int argc, char* argv[]) {
     free_menu(my_menu);
     for(int i = 0; i < size; i++) {
       for(int j = 0; j < games[i]->size; j++) {
-        free(games[i]->key_value_pairs[j]->key);
-        free(games[i]->key_value_pairs[j]->value);
-        free(games[i]->key_value_pairs[j]);
+        free_kvp(games[i]->key_value_pairs[j]);
       }
       free(games[i]->key_value_pairs);
+      free(games[i]->exec_path);
       free(games[i]);
       free_item(my_items[i]);
     }
     fclose(g_logfile);
+    // Free Strings that were allocated
+    free(steam_path);
+    if(wine_steam_path != NULL) {
+      free(wine_steam_path);
+    }
+
     free(games);
     free(my_items);
     games = NULL;

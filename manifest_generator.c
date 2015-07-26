@@ -60,9 +60,9 @@ void generate_manifests(char* path, game_t** games, int size) {
     }
     // Parse the generated file
     int size = 0;
-    printf("Parsing Manifest...\n", full_path);
+    printf("Parsing Manifest...\n");
     kvp_t** gen_manifest = parse_manifest(full_path, &size);
-      printf("Manifest Parse Complete...\n", full_path);
+    printf("Manifest Parse Complete...\n");
     // Find the executable path
     // The heirarchy for the executable paths is as follows:
     // "<appid>" "config" "launch" "<numberi>" "executable"
@@ -112,6 +112,13 @@ void generate_manifests(char* path, game_t** games, int size) {
     asprintf(&full_exec_path, "%scommon/%s/%s %s", steam_path, installdir, executable, launch_options);
     fprintf(g_logfile, "Full Exec Path:%s\n", full_exec_path);
     games[i]->exec_path = full_exec_path;
+
+    // Free all of the kvps that we created
+    for(int j = 0; j < size; j++) {
+      free_kvp(gen_manifest[j]);
+    }
+    free(gen_manifest);
+    free(full_path);
   }
 }
 

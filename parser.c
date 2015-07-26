@@ -177,6 +177,8 @@ kvp_t** parse_lines(FILE* f, int* size, int* capacity) {
         // Check to see if next char is EOL
         if(buf[index + 1] == '\n') {
         // End parent object, so break out of recursion
+        // Free the generated line
+        free(key_pair);
         return pairs;
         }
       } else if(buf[index] == '\"') {
@@ -224,6 +226,9 @@ kvp_t** parse_lines(FILE* f, int* size, int* capacity) {
       } else {
         fprintf(g_logfile, "PARSER: Adding Key %s with value %s\n", key_pair->key, key_pair->value);
       }
+    } else {
+      // We wont use this line, so free the kvp
+      free(key_pair);
     }
     // Clear the buffer
     memset(buf, '\0', sizeof(buf));
@@ -289,3 +294,23 @@ void parse_manifests(int* size, int* capacity, game_t*** games, char* steam_path
 }
 
 
+void free_kvp(kvp_t* pair) {
+  if(pair->num_children > 0) {
+    for(int i = 0; i < pair->num_children; i++) {
+      free_kvp(pair->children[i]);
+      pair->children[i] = NULL;
+    }
+    free(pair->children);
+    free(pair->key);
+  } else {
+    free(pair->key);
+    free(pair->value);
+  }
+  // Null out all pointers
+  pair->key = NULL;
+  pair->value = NULL;
+  pair->children = NULL;
+  pair->num_children = 0;
+  pair->capacity_children = 0;
+  free(pair);
+}

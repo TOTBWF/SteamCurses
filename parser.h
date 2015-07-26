@@ -30,3 +30,5 @@ kvp_t** parse_manifest(char* path, int* size);
 void parse_manifests(int* size, int* capacity, game_t*** games, char* steam_path, int is_wine);
 // Alphabetacally sorts an array of games
 void sort_games(game_t** games, int size);
+// Frees a kvp and all of its children
+void free_kvp(kvp_t* pair);
