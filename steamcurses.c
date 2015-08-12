@@ -1,6 +1,7 @@
 #define _GNU_SOURCE
 #include <stdlib.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <stdio.h>
 #include <curses.h>
 #include <menu.h>
@@ -12,9 +13,7 @@
 #include "steamcurses.h"
 #include "manifest_generator.h"
 
-
-// Fork of the game in a new process
-void launch_game(char* appid, int is_wine) {
+void launch_game_cmd(char* cmd) {
   // Fork off the game on a new thread
   pid_t pid;
   if((pid = fork()) < 0) {
@@ -25,17 +24,23 @@ void launch_game(char* appid, int is_wine) {
     // Pipe stderr -> stdout -> logfile
     dup2(fileno(g_logfile), fileno(stdout));
     dup2(fileno(stdout), fileno(stderr));
-
-    char* cmd;
-    if(is_wine) {
-      // Wine Steam will prompt for password
-      asprintf(&cmd, "wine $WINEPREFIX/drive_c/Program\\ Files/Steam/Steam.exe -silent -login %s %s -applaunch %s", g_username, g_password, appid);
-    } else {
-      asprintf(&cmd, "steam -applaunch %s", appid);
-    }
     system(cmd);
     exit(0);
   }
+}
+
+void launch_native_game(char* appid) {
+  char* cmd;
+  asprintf(&cmd, "steam -applaunch %s", appid);
+  launch_game_cmd(cmd);
+  free(cmd);
+}
+
+void launch_wine_game(char* appid, char* username, char* password) {
+  char* cmd;
+  asprintf(&cmd, "wine $WINEPREFIX/drive_c/Program\\ Files/Steam/Steam.exe -silent -login %s %s -applaunch %s", g_username, g_password, appid);
+  launch_game_cmd(cmd);
+  free(cmd);
 }
 
 void print_title(WINDOW* win, char* title) {
@@ -47,12 +52,14 @@ void print_title(WINDOW* win, char* title) {
 }
 
 void print_help() {
-  printf("Usage: ./steamcurses -u <username> [options]\n");
-  printf("	-u --username:		your Steam username\n");
-  printf("	-p --steam_path:	the path to your steamapps directory\n");
-  printf("	-w --wine_steam_path:	the path to your wine steamapps directory\n");
-  printf("  -m --update_manifests:  update the generated manifests used to get optional game data\n");
-  printf("	-h --help:		print this help message and exit\n");
+  printf("Usage: ./steamcurses [options]\n");
+  printf("  -c --config_path:       use a given config for launch\n");
+  printf("  -m --update_manifests:  update the generated manifest files\n");
+  printf("	-h --help:		          print this help message and exit\n");
+  printf("Config Options:\n");
+  printf("  username: the steam username to use. REQUIRED!\n");
+  printf("  steam_path: the path to the native steamapps directory.\n");
+  printf("  wine_steam_path: the path to the wine steamapps directory.\n");
 }
 
 void print_menu(WINDOW* win, MENU* menu, game_t** games) {
@@ -71,7 +78,11 @@ void print_menu(WINDOW* win, MENU* menu, game_t** games) {
         case 10: {
           game_t* curr_game = games[menu->curitem->index];
           char* appid = fetch_value(curr_game->key_value_pairs, "appid", curr_game->size); 
-          launch_game(appid, curr_game->is_wine);
+          if(curr_game->is_wine) {
+            launch_wine_game(appid, g_username, g_password);
+          } else {
+            launch_native_game(appid);
+          }
           break;
         }
       }
@@ -128,49 +139,96 @@ MENU* init_menu(ITEM** items, WINDOW* win) {
     return menu;
 }
 
-
-
-int main(int argc, char* argv[]) {
-
+void init(char** home, char** steamcurses_dir) {
   // The current home dir, used to generate default locations 
-  char* home = getenv("HOME");
+  *home = getenv("HOME");
   if(home == NULL) {
     printf("Error! $HOME is not valid or null\n");
     exit(1);
   }
+  
+  // Set the directory that we use to store files
+  asprintf(steamcurses_dir, "%s/.steamcurses/", *home);
 
+  // Make sure that directory exists, and if it doesnt, create it
+  struct stat st;
+  if(stat(*steamcurses_dir, &st) == -1) {
+    // Create the dir if it doesnt exits
+    mkdir(*steamcurses_dir, 0755);
+  }
+
+  // Set the log path, and init logging
   char* log_path;
-  asprintf(&log_path, "%s/.steam/steamcurses.log", home);
+  asprintf(&log_path, "%s/steamcurses.log", *steamcurses_dir);
   g_logfile = fopen(log_path, "a");
   free(log_path);
+}
 
-
+int main(int argc, char* argv[]) {
   char* steam_path = NULL;
   char* wine_steam_path = NULL;
+  char* steamcurses_dir = NULL;
+  char* config_path = NULL;
+  char* home = NULL;
   g_username = NULL;
   g_password = NULL;
   int update_manifests = 0;
-  
+  FILE* config_file = NULL;
+
+  // Perform basic init
+  init(&home, &steamcurses_dir);
+
   // Deal with user input
   for(int i = 1; i < argc; i++) {
-    if(strcmp(argv[i], "-u") == 0 || strcmp(argv[i], "--username") == 0) {
-        g_username = argv[++i];
-    } else if(strcmp(argv[i], "-p") == 0 || strcmp(argv[i], "--steam_path") == 0) {
-      steam_path = argv[++i];
-    } else if(strcmp(argv[i], "-w") == 0 || strcmp(argv[i], "--wine_steam_path") == 0) {
-      wine_steam_path = argv[++i];
-    } else if(strcmp(argv[i], "-m") == 0 || strcmp(argv[i], "--update_manifests") == 0) {
+    if(strcmp(argv[i], "-m") == 0 || strcmp(argv[i], "--update_manifests") == 0) {
       update_manifests = 1;
+    } else if(strcmp(argv[i], "-c") == 0 || strcmp(argv[i], "--config_path") == 0) {
+      config_path = argv[++i];
     } else {
       print_help();
       exit(0);
     }
   }
 
+  // If we arent provided a config path, then look in the default location
+  if(config_path == NULL) {
+    asprintf(&config_path, "%s/steamcurses.conf", steamcurses_dir);
+  }
+
+  // Check to see if the config file actually exists
+  if(access(config_path, F_OK) == -1) {
+    // If the file does not exist, create the file and fill out fields
+    fprintf(g_logfile, "Creating config file %s...\n", config_path);
+    config_file = fopen(config_path, "a+");
+    // Construct the opening skeleton of the file
+    fprintf(config_file, "\"config\"\n{\n");
+    char buf[1024];
+    printf(config_path, "Config File created at path %s\n");
+    printf("Enter your steam username: ");
+    scanf("%s", buf);
+    fprintf(config_file, " \"username\" \"%s\"\n", buf);
+    // Fill out the rest of the file
+    fprintf(config_file, "}\n");
+    // Let the user know about the other options
+    printf("You can use this config file to specify the path to your steamapp directorys\n");
+    printf("Just use the steam_path and wine_steam_path options!\n");
+  } else {
+    // The file already exists, so just open it for reading
+    config_file = fopen(config_path, "r");
+  }
+
+  // Read the values from the config
+  int config_size = 0;
+  kvp_t** config_kvp = parse_manifest(config_path, &config_size);
+  g_username = fetch_value(config_kvp, "username", config_size);
+  steam_path = fetch_value(config_kvp, "steam_path", config_size);
+  wine_steam_path = fetch_value(config_kvp, "wine_steam_path", config_size);
+
   // If we don't get provided input, make an educated guess or throw errors
   if(steam_path == NULL) {
     asprintf(&steam_path, "%s/.steam/steam/steamapps/", home);
   }
+
   if(g_username == NULL) {
     printf("Error, no username provided!\n");
     print_help();
@@ -180,7 +238,6 @@ int main(int argc, char* argv[]) {
   g_password = (char*) getpass("Password: ");
  
   pid_t pid;
-
 
   // Fork off the steam process
   if((pid=fork()) < 0) {
@@ -195,8 +252,6 @@ int main(int argc, char* argv[]) {
     asprintf(&bin_path, "%s/.steam/bin", home);
     fprintf(g_logfile, "%s\n", bin_path);
 
-
-  
     // Pipe stderr -> stdout -> logfile
     dup2(fileno(g_logfile), fileno(stdout));
     dup2(fileno(stdout), fileno(stderr));
@@ -218,16 +273,18 @@ int main(int argc, char* argv[]) {
     sort_games(games, size);
     // We use these generated manifests to view interesting info about the games
     if(update_manifests) {
-      char* steamcurses_dir;
-      asprintf(&steamcurses_dir, "%s/.steamcurses/", home);
-      generate_manifests(steamcurses_dir, games, size); 
-      free(steamcurses_dir);
+      // Create a folder specifically for the generated manifests
+      char* manifest_path;
+      asprintf(&manifest_path, "%s/manifests/", steamcurses_dir);
+      printf("Generating manifests, this can take a while if you have a lot of games...\n");
+      generate_manifests(manifest_path, games, size); 
+      printf("Manifest generation complete\n");
+      free(manifest_path);
     }
 
     WINDOW* win;
     ITEM** my_items;
     MENU* my_menu;
-
 
     // Set up ncurses
     win = init_ncurses();
@@ -253,6 +310,9 @@ int main(int argc, char* argv[]) {
       free(games[i]);
       free_item(my_items[i]);
     }
+    free(config_path);
+    free_kvp(*config_kvp);
+    free(config_kvp);
     fclose(g_logfile);
     // Free Strings that were allocated
     free(steam_path);
@@ -262,9 +322,9 @@ int main(int argc, char* argv[]) {
 
     free(games);
     free(my_items);
+    free(steamcurses_dir);
     games = NULL;
     my_items = NULL;
-    log_path = NULL;
     steam_path = NULL;
     endwin();
     system("steam -shutdown 1>/dev/null 2>/dev/null");

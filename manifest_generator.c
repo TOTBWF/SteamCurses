@@ -19,11 +19,11 @@ void init_generator(char* path) {
 
 void generate_manifests(char* path, game_t** games, int size) {
   fprintf(g_logfile, "Begining Manifest Generation...\n");
-  printf("Begining Manifest Generation...\n");
   // Make sure the path actually exists
   init_generator(path);
 
   for(int i = 0; i < size; i++) {
+    printf("Generating Manifest %d out of %d\n", i + 1, size);
     // Fetch the appid
     char* appid = fetch_value(games[i]->key_value_pairs, "appid", games[i]->size);
     // Get the game install dir
@@ -36,11 +36,9 @@ void generate_manifests(char* path, game_t** games, int size) {
     asprintf(&full_path, "%s%s.manifest", path, appid);
 
     fprintf(g_logfile, "Checking file %s...\n", full_path);
-    printf("Checking file %s...\n", full_path);
     // Check to see if the file exists
     if(access(full_path, F_OK) == -1) {
       fprintf(g_logfile, "Creating file %s...\n", full_path);
-      printf("Creating file %s...\n", full_path);
 
       /*
         KLUDGE ALERT!!!
@@ -60,9 +58,7 @@ void generate_manifests(char* path, game_t** games, int size) {
     }
     // Parse the generated file
     int size = 0;
-    printf("Parsing Manifest...\n");
     kvp_t** gen_manifest = parse_manifest(full_path, &size);
-    printf("Manifest Parse Complete...\n");
     // Find the executable path
     // The heirarchy for the executable paths is as follows:
     // "<appid>" "config" "launch" "<numberi>" "executable"
@@ -82,9 +78,6 @@ void generate_manifests(char* path, game_t** games, int size) {
     
     // First get a listing of all options in kvp_t form
     kvp_t* match_appids = fetch_match(gen_manifest, appid, size);
-    for(int j = 0; j < match_appids->num_children; j++) {
-      printf("appid/%s\n", match_appids->children[j]->key);
-    }
     kvp_t* match_config = fetch_match(match_appids->children, "config", match_appids->num_children);
     if(match_config == NULL) {
       printf("Parsing Error, %s could not be found in %s\n", "config", full_path);

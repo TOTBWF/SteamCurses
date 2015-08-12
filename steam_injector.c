@@ -9,3 +9,4 @@ int XMapWindow(Display* display, Window w) {
   printf("Window Mapping Blocked\n");
   return 0;
 }
+

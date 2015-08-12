@@ -29,5 +29,6 @@
 *.hex
 
 *.swp
+*.ycm*
 # The Actual Executable
 steamcurses
