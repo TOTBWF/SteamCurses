@@ -306,7 +306,6 @@ int main(int argc, char* argv[]) {
         free_kvp(games[i]->key_value_pairs[j]);
       }
       free(games[i]->key_value_pairs);
-      free(games[i]->exec_path);
       free(games[i]);
       free_item(my_items[i]);
     }
