@@ -257,7 +257,7 @@ int main(int argc, char* argv[]) {
     dup2(fileno(stdout), fileno(stderr));
     // Set up launch command
     char* cmd;
-    asprintf(&cmd, "LD_PRELOAD=/usr/lib32/steam_injector.so LD_LIBRARY_PATH=%s %s/steam -login %s %s", bin_path, bin_path, g_username, g_password);
+    asprintf(&cmd, "LD_PRELOAD=/usr/lib32/steam_injector.so LD_LIBRARY_PATH=%s %s/steam -silent -login %s %s", bin_path, bin_path, g_username, g_password);
     system(cmd);
     exit(0);
   } else {
