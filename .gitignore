@@ -32,3 +32,6 @@
 *.ycm*
 # The Actual Executable
 steamcurses
+
+/target
+**/*.rs.bk
