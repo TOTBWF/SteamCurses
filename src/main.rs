@@ -41,10 +41,12 @@ fn parse_manifests(steam_path: &Path) -> Vec<AcfValue> {
 
 fn main() {
 
-    let steam_proc = launch_steam();
+    let mut steam_proc = launch_steam();
 
     let games = parse_manifests(Path::new("/home/reed/.steam/steam/steamapps/"));
 
     let ui = init_ui(&games);
     handle_updates(ui, &games);
+
+    steam_proc.kill();
 }

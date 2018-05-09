@@ -100,8 +100,6 @@ pub fn handle_updates(ui: UI, games: &Vec<AcfValue>) {
                 let app_id = game["AppState"]["appid"].value().unwrap();
                 update_status(ui.status_bar, &format!("Launching: {}", app_id));
                 let mut game_proc = launch_game(app_id);
-                // let res = game_proc.wait().unwrap();
-                // update_status(ui.status_bar, &format!("Result: {}", res));
             }
             _ => {}
         }
