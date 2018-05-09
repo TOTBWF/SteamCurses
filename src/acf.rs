@@ -14,6 +14,13 @@ impl AcfValue {
             AcfValue::Object(ref o) => o.get(key)
         }
     }
+
+    pub fn value(&self) -> Option<&str> {
+        match self {
+            AcfValue::Str(s) => Some(s),
+            _ => None
+        }
+    }
 }
 
 impl<'a> Index<&'a str> for AcfValue {
