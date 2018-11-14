@@ -71,9 +71,3 @@ impl SteamClient {
             .expect("[ERROR] Failed to execute game!");
     }
 }
-
-impl Drop for SteamClient {
-    fn drop(self) -> () {
-        self.proc.kill();
-    }
-}
