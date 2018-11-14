@@ -13,8 +13,6 @@ mod user_interface;
 use std::fs;
 use std::fs::{File, OpenOptions};
 use std::io::prelude::*;
-use std::io;
-use std::env;
 use std::path::Path;
 use clap::{Arg, App};
 
@@ -24,11 +22,10 @@ use vdf::*;
 use steam_client::*;
 use user_interface::*;
 
-
 fn parse_manifest(path: &Path) -> VDFValue {
     let mut contents = String::new();
-    let mut file = File::open(path).expect("Error reading file!");
-    file.read_to_string(&mut contents);
+    let mut file = File::open(path).expect("[ERROR] Cannot open manifest file");
+    file.read_to_string(&mut contents).unwrap();
     vdf_parser::parse_vdf(&contents)
 }
 
@@ -46,41 +43,44 @@ fn parse_manifests(steam_path: &Path) -> Vec<VDFValue> {
     manifests
 }
 
-fn load_config(config_path: Option<&str>) -> vdf::VDFValue {
-    match config_path {
-        Some(ref p) => parse_manifest(Path::new(p)),
+fn load_config(custom_config_path: Option<&str>) -> Config {
+    let xdg_dirs = xdg::BaseDirectories::with_prefix("steamcurses").unwrap();
+    let xdg_config_path = xdg_dirs.place_config_file ("steamcurses.conf")
+        .expect("[ERROR] Cannot create config file");
+
+    let config_path = match custom_config_path {
+        Some(p) => {
+            Path::new(p)
+        },
         None => {
-            let home_var = env::var("HOME")
-                .expect("[ERROR] Could not determine home directory!");
-            let xdg_config_var = env::var("XDG_CONFIG_HOME");
-            let config_dir_path = xdg_config_var
-                .map(|v| Path::new(&v).join("steamcurses"))
-                .unwrap_or(Path::new(&home_var).join(".config").join("steamcurses"));
-
-            if !config_dir_path.exists() {
-                fs::create_dir(&config_dir_path)
-                    .expect("[ERROR] Could not create config directory!");
-            }
-
-            let config_file_path = config_dir_path.join("steamcurses.conf");
-
-            if !config_file_path.exists() {
-                println!("Creating config file {:?}", config_file_path);
-
-                print!("Enter your steam username: ");
-                io::stdout().flush();
-                let mut username = String::new();
-                io::stdin().read_line(&mut username).unwrap();
-
-                let config_contents = format!("\"config\" {{\"username\" \"{}\"}}", &username[.. username.len() - 1]);
-
-                File::create(&config_file_path)
-                    .map(|mut f| f.write_all(&config_contents.as_bytes()).unwrap())
-                    .expect("[ERROR] Could not create config file!");
-            }
-            parse_manifest(&config_file_path)
+            let mut f = OpenOptions::new()
+                .create(true)
+                .read(true)
+                .write(true)
+                .open(xdg_config_path.as_path())
+                .expect("[ERROR] Cannot create config file");
+            f.write_all(b"\"config\" {}\n").expect("[ERROR] Cannot create config file");
+            xdg_config_path.as_path()
         }
-    }
+    };
+
+    let config_dict = parse_manifest(config_path)
+        .select("config")
+        .and_then(VDFValue::to_object)
+        .unwrap();
+
+    let xdg_steam_dirs = xdg::BaseDirectories::with_prefix("Steam").unwrap();
+    let xdg_steam_path = xdg_steam_dirs.get_data_home();
+    let steam_path = config_dict.get("steam_path")
+        .and_then(VDFValue::as_string)
+        .map(Path::new)
+        .unwrap_or(xdg_steam_path.as_path());
+    let wine_steam_path = config_dict.get("wine_steam_path")
+        .and_then(VDFValue::as_string)
+        .map(Path::new);
+
+    let config = Config::new(steam_path);
+    config.wine_steam_path(wine_steam_path)
 }
 
 fn main() {
@@ -100,19 +100,15 @@ fn main() {
              .value_name("FILE")
              .help("Sets a custom config file. Defaults to $XDG_CONFIG_HOME/steamcurses/steamcurses.conf")
              .takes_value(true))
-        .arg(Arg::with_name("steam_prompt")
-             .short("p")
-             .long("prompt")
-             .help("Uses the steam login prompt")
-        )
         .get_matches();
 
-    let config_vdf = load_config(matches.value_of("config"));
-    let config = Config::from_vdf(&config_vdf)
-        .log_path(matches.value_of("logfile").map(|l| Path::new(l)))
-        .steam_visible(matches.is_present("steam_prompt"));
+    // let steam_path_default = Path::new(home_var)
+    //     .join("")
+
+    let config = load_config(matches.value_of("config"));
+    let manifests = parse_manifests(&config.steam_path.as_ref().join("steamapps"));
     let mut steam_client = SteamClient::new(config);
-    let manifests = parse_manifests(Path::new("/home/reed/.steam/steam/steamapps/"));
+
     let games: Vec<Game> = manifests.into_iter().map(Game::new).collect();
     render_ui(&games, &mut steam_client)
 }

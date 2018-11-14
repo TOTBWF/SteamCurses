@@ -1,7 +1,5 @@
 use std::process::*;
-use std::env;
 use std::fs::{File, OpenOptions};
-use std::io::Write;
 
 use config::*;
 
@@ -12,7 +10,7 @@ pub struct SteamClient {
 
 impl Drop for SteamClient {
     fn drop(&mut self) {
-        self.proc.kill();
+        self.proc.kill().unwrap();
     }
 }
 
@@ -30,28 +28,16 @@ impl SteamClient {
                 .write(true)
                 .append(true)
                 .create(true)
-                .open(p)
+                .open(p.as_ref())
                 .expect("[Error] Cannot open log file!")
         });
         let output = mk_pipe(&log_file);
         let error = mk_pipe(&log_file);
 
-        // let mut command = Command::new("steam")
-        //     .stdout(output)
-        //     .stderr(error)
-        // if !config.steam_visible {
-        //     command.arg("-silent")
-        //     .env("LD_PRELOAD", "/usr/lib32/steam_injector.so");
-        // }
-        let mut args = vec!["-silent"];
-        let mut env = Vec::new();
-        if !config.steam_visible {
-            env.push(("LD_PRELOAD", "/usr/lib32/steam_injector.so"));
-        }
+        let args = vec!["-silent"];
 
         let proc = Command::new("steam")
             .args(args)
-            .envs(env)
             .stdout(output)
             .stderr(error)
             .spawn()

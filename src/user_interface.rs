@@ -6,15 +6,13 @@ use std::thread;
 use termion::event;
 use termion::input::TermRead;
 
-use tui::*;
 use tui::Terminal;
 use tui::backend::RawBackend;
-use tui::style::{Color, Modifier, Style};
+use tui::style::{Color, Style};
 use tui::widgets::{Paragraph, SelectableList, Widget};
 use tui::layout::{Group, Size, Direction, Rect};
 
 use steam_client::*;
-use vdf::*;
 use game::*;
 
 enum Mode {
@@ -34,7 +32,7 @@ struct App<'a> {
     selected: usize,
     command: String,
     command_tx: &'a mpsc::Sender<Event>,
-    mode: Mode,
+    mode: Mode
 }
 
 pub fn render_ui(games: &Vec<Game>, client: &mut SteamClient) {

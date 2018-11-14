@@ -71,7 +71,7 @@ named!(
 
 
 pub fn parse_vdf(s: &str) -> VDFValue {
-    vdf(s.as_bytes()) .to_result().unwrap()
+    vdf(s.as_bytes()).to_result().unwrap()
 }
 
 /*
