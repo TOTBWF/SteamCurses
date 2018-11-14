@@ -4,8 +4,8 @@ version = "0.1.0"
 authors = ["Reed Mullanix <reedmullanix@gmail.com>"]
 
 [dependencies]
+clap = "^2.32"
+tui = "^0.2"
+termion = "^1.5"
 nom = "^3.2"
 
-[dependencies.ncurses]
-version = "5.91"
-features = ["menu"]

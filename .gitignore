@@ -35,3 +35,6 @@ steamcurses
 
 /target
 **/*.rs.bk
+
+# Editor Stuff
+.vscode
