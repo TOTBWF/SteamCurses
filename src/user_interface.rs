@@ -120,12 +120,12 @@ fn handle_event_select(app: &mut App, evt: event::Key) {
         event::Key::Char(':') => {
             app.mode = Mode::Command;
         }
-        event::Key::Up => {
+        event::Key::Up | event::Key::Char('k') => {
             if app.selected > 0 {
                 app.selected -= 1
             };
         }
-        event::Key::Down => {
+        event::Key::Down | event::Key::Char('j') => {
             if app.selected < app.games.len() - 1 {
                 app.selected += 1
             };
@@ -134,7 +134,7 @@ fn handle_event_select(app: &mut App, evt: event::Key) {
             let game = &app.games[app.selected];
             app.command = format!("Launching {}...", &game.name);
             app.mode = Mode::Alert;
-            app.client.launch_game(&game.app_id);
+            app.client.launch_game(&game);
         }
         event::Key::Ctrl('c') => {
             app.command = "Type :q and press <Enter> to exit steamcurses".to_string();

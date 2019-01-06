@@ -1,16 +1,27 @@
 use std::process::*;
+use std::path::Path;
 use std::fs::{File, OpenOptions};
 
 use config::*;
+use game::*;
 
 pub struct SteamClient {
     proc: Child,
-    log_file: Option<File>
+    log_file: Option<File>,
+    wine_prefix: Option<Box<Path>>
 }
 
 impl Drop for SteamClient {
     fn drop(&mut self) {
         self.proc.kill().unwrap();
+        let output = mk_pipe(&self.log_file);
+        let error = mk_pipe(&self.log_file);
+        Command::new("steam")
+            .arg("-shutdown")
+            .stdout(output)
+            .stderr(error)
+            .spawn()
+            .expect("[ERROR] Failed to execute game!");
     }
 }
 
@@ -42,18 +53,36 @@ impl SteamClient {
             .stderr(error)
             .spawn()
             .expect("[ERROR] Failed to execute steam!");
-        SteamClient { proc: proc, log_file: log_file }
+        SteamClient {
+            proc: proc,
+            log_file: log_file,
+            wine_prefix: config.wine_prefix
+        }
     }
 
-    pub fn launch_game(&mut self, app_id: &str) {
+    pub fn launch_game(&mut self, game: &Game) {
         let output = mk_pipe(&self.log_file);
         let error = mk_pipe(&self.log_file);
-        Command::new("steam")
-            .arg("-applaunch")
-            .arg(app_id)
-            .stdout(output)
-            .stderr(error)
-            .spawn()
-            .expect("[ERROR] Failed to execute game!");
+        match &game.game_type {
+            GameType::Native => {
+                Command::new("steam")
+                    .arg("-applaunch")
+                    .arg(&game.app_id)
+                    .stdout(output)
+                    .stderr(error)
+                    .spawn()
+                    .expect("[ERROR] Failed to execute game!");
+            },
+            GameType::Wine => {
+                Command::new("wine")
+                    .arg("$PREFIX/drive_c/Program\\ Files")
+                    .arg("-applaunch")
+                    .arg(&game.app_id)
+                    .stdout(output)
+                    .stderr(error)
+                    .spawn()
+                    .expect("[ERROR] Failed to execute game!");
+            }
+        }
     }
 }

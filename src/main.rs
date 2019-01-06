@@ -78,9 +78,12 @@ fn load_config(custom_config_path: Option<&str>) -> Config {
     let wine_steam_path = config_dict.get("wine_steam_path")
         .and_then(VDFValue::as_string)
         .map(Path::new);
+    let wine_prefix = config_dict.get("wine_prefix")
+        .and_then(VDFValue::as_string)
+        .map(Path::new);
 
     let config = Config::new(steam_path);
-    config.wine_steam_path(wine_steam_path)
+    config.wine_steam_path(wine_steam_path).wine_prefix(wine_prefix)
 }
 
 fn main() {
@@ -102,13 +105,13 @@ fn main() {
              .takes_value(true))
         .get_matches();
 
-    // let steam_path_default = Path::new(home_var)
-    //     .join("")
-
     let config = load_config(matches.value_of("config"));
+
+    // TODO: Look up username in the config.vdf file
+    // let steam_config = parse_manifest(&config.steam_path.as_ref().join("config").join("config.vdf"));
+    // let username : HashMap<String, VDFValue> = &steam_config["InstallConfigStore"]["Software"]["Valve"]["Steam"]["Accounts"].as_object();
     let manifests = parse_manifests(&config.steam_path.as_ref().join("steamapps"));
     let mut steam_client = SteamClient::new(config);
-
-    let games: Vec<Game> = manifests.into_iter().map(Game::new).collect();
+    let games: Vec<Game> = manifests.into_iter().map(|m| Game::new(m, GameType::Native)).collect();
     render_ui(&games, &mut steam_client)
 }

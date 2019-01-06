@@ -4,8 +4,6 @@ use std::str;
 
 use vdf::{VDFValue};
 
-
-
 named!(
     string_content<String>,
     map!(escaped_transform!(
@@ -83,8 +81,6 @@ pub fn parse_vdf(s: &str) -> VDFValue {
  * 0x27 0x44 0x56 0x__ (appinfo.vdf)
  * 0x27 0x55 0x56 0x__ (packageinfo.vdf)
  * 
- */ 
+ */
 
-// named!(bvdf_header<()>,
-    
-// );
+// named!(bvdf_header<()>, bits!(tag_bits!()));
