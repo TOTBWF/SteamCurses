@@ -1,6 +1,9 @@
 # SteamCurses
 A basic NCurses client for Steam on Linux
 
+**This version will be replaced by https://github.com/TOTBWF/SteamCurses/tree/rust-rewrite**
+
+
 ### Features:
 - Supports both wine and native games at the same time
 
