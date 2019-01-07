@@ -111,7 +111,14 @@ fn main() {
     // let steam_config = parse_manifest(&config.steam_path.as_ref().join("config").join("config.vdf"));
     // let username : HashMap<String, VDFValue> = &steam_config["InstallConfigStore"]["Software"]["Valve"]["Steam"]["Accounts"].as_object();
     let manifests = parse_manifests(&config.steam_path.as_ref().join("steamapps"));
+    let wine_manifests = match &config.wine_steam_path {
+        Some(p) => parse_manifests(&p.join("steamapps")),
+        None => Vec::new()
+    };
     let mut steam_client = SteamClient::new(config);
-    let games: Vec<Game> = manifests.into_iter().map(|m| Game::new(m, GameType::Native)).collect();
+    let mut games: Vec<Game> = manifests.into_iter().map(|m| Game::new(m, GameType::Native))
+        .chain(wine_manifests.into_iter().map(|m| Game::new(m, GameType::Wine)))
+        .collect();
+    games.sort();
     render_ui(&games, &mut steam_client)
 }

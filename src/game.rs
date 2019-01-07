@@ -1,10 +1,13 @@
+use std::cmp::Ordering;
 use vdf::*;
 
+#[derive(PartialEq, Eq)]
 pub enum GameType {
     Native,
     Wine
 }
 
+#[derive(PartialEq, Eq)]
 pub struct Game {
     pub name: String,
     pub app_id: String,
@@ -26,7 +29,17 @@ impl Game {
 impl AsRef<str> for Game {
     fn as_ref(&self) -> &str {
         &self.name
-        // &format!("{} ({})", self.name, self.app_id)
-        // &(self.name + " (" + self.app_id + ")")
+    }
+}
+
+impl PartialOrd for Game {
+    fn partial_cmp(&self, other: &Game) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for Game {
+    fn cmp(&self, other: &Game) -> Ordering {
+        self.name.cmp(&other.name)
     }
 }

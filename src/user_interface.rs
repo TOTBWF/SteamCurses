@@ -176,15 +176,14 @@ fn handle_event_alert(app: &mut App, evt: event::Key) {
             app.command = String::from("");
             app.mode = Mode::Select;
         }
-        event::Key::Esc => {
-            app.command = String::from("");
-            app.mode = Mode::Select;
-        }
         event::Key::Char(':') => {
             app.command = String::from("");
             app.mode = Mode::Command;
         }
-        _ => {}
+        _ => {
+            app.command = String::from("");
+            app.mode = Mode::Select;
+        }
     }
 }
 
